@@ -1,0 +1,44 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"autoDocstring.docstringFormat": "google",
+		"python.languageServer": "Pylance",
+		"python.analysis.typeCheckingMode": "standard",
+		"[python]": {
+			"editor.formatOnSave": true,
+			"editor.codeActionsOnSave": {
+				"source.organizeImports": "explicit",
+				"source.sortImports": "explicit",
+				"source.fixAll": "explicit",
+				"source.addMissingImports": "explicit",
+			},
+			"editor.defaultFormatter": "charliermarsh.ruff",
+		},
+		"notebook.defaultFormatter": "charliermarsh.ruff",
+		"notebook.formatOnSave.enabled": true,
+		"python.analysis.diagnosticSeverityOverrides": {
+			"reportUnnecessaryIsInstance": "none",
+			"reportMissingTypeStubs": "none",
+		},
+
+		"ruff.configuration": "./pyproject.toml",
+		"ruff.nativeServer": true,
+		"ruff.lint.enable": false,
+		"editor.rulers": [
+			120
+		],
+		"debug.internalConsoleOptions": "neverOpen",
+		"workbench.colorCustomizations": {
+			"titleBar.activeBackground": "#e3005f",
+		},
+		"editor.defaultFormatter": "charliermarsh.ruff",
+		"[json]": {
+			"editor.formatOnSave": true,
+			"editor.defaultFormatter": "vscode.json-language-features"
+		},
+	}
+}
