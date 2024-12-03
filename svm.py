@@ -3,16 +3,24 @@ from cvxopt import matrix, solvers
 
 
 class MoschosSVM:
-    def __init__(self, C: float, kernel: str, degree: int, gamma: float, coef0: float):
-        self.C = C
+    def __init__(self, kernel: str):
         self.kernel = kernel
-        self.degree = degree
-        self.gamma = gamma
-        self.coef0 = coef0
+        self.kernel_function = None
         self.sv_x = None
         self.sv_y = None
         self.alphas = None
         self.b = 0
+        self.coef0 = 0.0
+
+    def set_params(self, **params):
+        if "C" in params:
+            self.C = params["C"]
+        if "degree" in params:
+            self.degree = params["degree"]
+        if "gamma" in params:
+            self.gamma = params["gamma"]
+        if "coef0" in params:
+            self.coef0 = params["coef0"]
 
     def _linear_kernel(self, x1, x2):
         """
@@ -72,7 +80,7 @@ class MoschosSVM:
         """
         return np.tanh(self.gamma * np.dot(x1, x2) + self.coef0)
 
-    def _compute_kernel_matrix(self, X, kernel):
+    def _compute_kernel_matrix(self, X):
         """
         Compute the kernel matrix K for the dataset X using the specified kernel function.
 
@@ -85,11 +93,12 @@ class MoschosSVM:
         """
         n_samples = X.shape[0]
         K = np.zeros((n_samples, n_samples))
-
         for i in range(n_samples):
             for j in range(n_samples):
-                K[i, j] = kernel(X[i], X[j])
-
+                if self.kernel_function is not None:
+                    K[i, j] = self.kernel_function(X[i], X[j])
+                else:
+                    raise ValueError("No kernel function set.")
         return K
 
     def fit(self, X_train, y_train):
@@ -105,13 +114,10 @@ class MoschosSVM:
         """
         n_samples, _ = X_train.shape
 
-        # Map labels to -1 and 1
-        y_train = np.where(y_train <= 0, -1, 1).astype(float)
-
         # Select the kernel function
         if self.kernel == "linear":
             self.kernel_function = self._linear_kernel
-        elif self.kernel == "polynomial":
+        elif self.kernel == "poly":
             self.kernel_function = self._polynomial_kernel
         elif self.kernel == "rbf":
             self.kernel_function = self._rbf_kernel
@@ -123,9 +129,10 @@ class MoschosSVM:
             )
 
         # Compute the kernel matrix
-        K = self._compute_kernel_matrix(X_train, self.kernel)
+        K = self._compute_kernel_matrix(X_train)
 
         # Set up parameters for quadratic programming
+        y_train = y_train.astype(float)
         P = matrix(np.outer(y_train, y_train) * K)
         q = matrix(-np.ones(n_samples))
         G = matrix(np.vstack((-np.eye(n_samples), np.eye(n_samples))))
@@ -134,30 +141,37 @@ class MoschosSVM:
         b = matrix(np.zeros(1))
 
         # Solve the quadratic programming problem
-        solvers.options["show_progress"] = True
+        solvers.options["show_progress"] = False
         solution = solvers.qp(P, q, G, h, A, b)
 
         # Extract Lagrange multipliers
         alphas = np.ravel(solution["x"])
 
         # Support vectors have non-zero Lagrange multipliers
-        sv = alphas > 1e-5
-        ind = np.arange(len(alphas))[sv]
-        self.alphas = alphas
-        self.alphas_sv = self.alphas[sv]
+        tol = 1e-5
 
-        self.sv_X = X_train[sv]
-        self.sv_y = y_train[sv]
+        i = np.where(alphas > tol)[0]
+
+        self.alphas = alphas[i]
+        self.sv_X = X_train[i]
+        self.sv_y = y_train[i]
 
         # Compute the bias term
-        b = np.mean(
+        self.b = np.mean(
             [
-                self.sv_y[i] - np.sum(self.alphas_sv * self.sv_y * K[ind[i], sv])
-                for i in range(len(self.alphas_sv))
+                self.sv_y[i]
+                - np.sum(
+                    self.alphas
+                    * self.sv_y
+                    * np.array(
+                        [self.kernel_function(self.sv_X[i], x_j) for x_j in self.sv_X]
+                    )
+                )
+                for i in range(len(self.alphas))
             ]
         )
 
-    def predict(self, X):
+    def pred(self, X):
         """
         Compute the decision function for input samples X.
 
@@ -168,9 +182,15 @@ class MoschosSVM:
             np.ndarray: Decision function values for each input sample.
         """
         result = np.zeros(X.shape[0])
-        for i in range(len(self.alphas_sv)):
-            K_sv = np.array([self.kernel_function(self.sv_X[i], x) for x in X])
-            # Supressing Pylance for the following line (don't judge me)
-            result += self.alphas_sv[i] * self.sv_y[i] * K_sv  # type: ignore
-        predictions = result + self.b
-        return np.sign(predictions)
+        if self.alphas is not None:
+            for i in range(len(self.alphas)):
+                if self.kernel_function is not None:
+                    K_sv = np.array([self.kernel_function(self.sv_X[i], x) for x in X])
+                    print(K_sv)
+                else:
+                    raise ValueError("No kernel function set.")
+                # Supressing Pylance for the following line (don't judge me)
+                result += self.alphas[i] * self.sv_y[i] * K_sv  # type: ignore
+
+            predictions = result + self.b
+            return np.sign(predictions)
