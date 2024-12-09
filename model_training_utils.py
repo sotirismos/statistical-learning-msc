@@ -7,6 +7,47 @@ from sklearn import metrics, model_selection
 
 
 def grid_search(model, param_dict, x_train, y_train):
+    """
+    Perform a grid search over given model parameters using cross-validation.
+
+    This function iterates over all combinations of parameters provided
+    in `param_dict` and evaluates the model's performance using stratified
+    k-fold cross-validation. For each parameter set, it records the mean
+    training and validation accuracies, as well as the mean training time.
+    It returns a dictionary summarizing the results of the grid search,
+    including the best parameters found.
+
+    Parameters
+    ----------
+    model : estimator
+        A scikit-learn compatible estimator. The estimator must implement
+        `set_params` and `fit` methods. It can also implement `predict`,
+        or for certain custom models like "MoschosSVM", a `pred` method.
+    param_dict : dict
+        A dictionary defining parameter ranges for the model. Keys are
+        parameter names, and values are lists of parameter values to try.
+    x_train : array-like of shape (n_samples, n_features)
+        The training data input features.
+    y_train : array-like of shape (n_samples,)
+        The training data labels.
+
+    Returns
+    -------
+    results : dict
+        A dictionary containing:
+        - "params": list of all parameter combinations tried.
+        - "train_score": array of mean training accuracies for each parameter combination.
+        - "val_score": array of mean validation accuracies for each parameter combination.
+        - "time": array of mean training times for each parameter combination.
+        - "best_index": int, the index of the best parameter combination.
+        - "best_params": dict, the best parameter combination that achieved
+            the highest validation accuracy.
+
+    Notes
+    -----
+    This function uses 5-fold stratified cross-validation with a fixed
+    random state for reproducibility.
+    """
     param_grid = model_selection.ParameterGrid(param_dict)
     all_params = list(param_grid)
     num = len(all_params)
@@ -78,6 +119,32 @@ def grid_search(model, param_dict, x_train, y_train):
 
 
 def plot_grid_search(results, param1, param2, xscale):
+    """
+    Plot the results of a grid search for two parameters.
+
+    This function takes the results dictionary from the `grid_search` function
+    and plots the training and validation accuracies as a function of one parameter,
+    grouped by the values of another parameter. It also plots the training times
+    for each parameter combination.
+
+    Parameters
+    ----------
+    results : dict
+        The dictionary returned by `grid_search`.
+    param1 : str
+        The primary parameter name to plot on the x-axis.
+    param2 : str
+        The secondary parameter name by which to group the plots. If this parameter
+        is not present in `results["params"]`, the plots will be generated without grouping.
+    xscale : str
+        The scale of the x-axis (e.g., "linear", "log").
+
+    Returns
+    -------
+    None
+        Displays two plots: one showing training and validation accuracies,
+        and another showing training times.
+    """
     all_params = results["params"]
     train_acc = results["train_score"]
     val_acc = results["val_score"]
@@ -135,6 +202,48 @@ def plot_grid_search(results, param1, param2, xscale):
 
 
 def evaluate_model(model_str, model, best_params, x_train, y_train, x_test, y_test):
+    """
+    Evaluate a model using the best parameters found by grid search.
+
+    This function sets the model's parameters to the best found combination,
+    trains the model on the entire training set, and evaluates its performance
+    on both the training and test sets. It also records timing and returns
+    a summary dictionary.
+
+    Parameters
+    ----------
+    model_str : str
+        A string identifier for the model (e.g., "SVC", "RandomForest").
+    model : estimator
+        The model or estimator to evaluate. Should implement `set_params`, `fit`,
+        and `predict` or `pred` methods.
+    best_params : dict
+        The dictionary of parameter settings that resulted in the best
+        performance during the grid search.
+    x_train : array-like of shape (n_samples, n_features)
+        The training data input features.
+    y_train : array-like of shape (n_samples,)
+        The training data labels.
+    x_test : array-like of shape (n_samples, n_features)
+        The test data input features.
+    y_test : array-like of shape (n_samples,)
+        The test data labels.
+
+    Returns
+    -------
+    res : dict
+        A dictionary containing:
+        - "Classifier": The model identifier.
+        - "Parameters": A string representation of the best parameters.
+        - "Training Accuracy": The training accuracy as a formatted string.
+        - "Test Accuracy": The test accuracy as a formatted string.
+        - "Training Time (sec)": The training time in seconds as a formatted string.
+
+    Notes
+    -----
+    This function also prints out the training and test accuracies, along
+    with the training time. It does not display images or plots.
+    """
     print("Training on the original training set with params =", best_params)
     model.set_params(**best_params)
     t1 = time()
