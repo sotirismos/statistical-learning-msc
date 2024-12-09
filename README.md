@@ -1,3 +1,19 @@
+### Environment setup
+
+**assuming you've already installed poetry and pyenv in your machine**
+
+1. Download & utilize `.python-version`
+
+    - `pyenv install $(pyenv latest -k X.Y)`
+    - `pyenv local $(pyenv latest -k X.Y)`
+
+2. Update `pyproject.toml` file 
+
+    - `poetry env use $(cat .\.python-version)`
+
+3. Install dependencies
+    - `poetry install --no-root`
+
 `cifar10_binary.ipynb` contains experiments using `svm.py` and `sklearn` for a binary classification problem (airplane vs rest)
 
 `cifar10_multiclass.ipynb` containts experiments using `sklearn` for CIFAR-10 10-class classification problem on the full dataset
