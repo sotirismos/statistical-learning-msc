@@ -186,7 +186,6 @@ class MoschosSVM:
             for i in range(len(self.alphas)):
                 if self.kernel_function is not None:
                     K_sv = np.array([self.kernel_function(self.sv_X[i], x) for x in X])
-                    print(K_sv)
                 else:
                     raise ValueError("No kernel function set.")
                 # Supressing Pylance for the following line (don't judge me)
